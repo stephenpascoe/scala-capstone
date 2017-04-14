@@ -1,6 +1,7 @@
 package observatory
 
-object Main extends App {
+import scala.io.Source
 
+object Main extends App {
 
 }

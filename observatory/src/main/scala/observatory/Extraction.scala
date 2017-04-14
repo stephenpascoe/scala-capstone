@@ -2,6 +2,16 @@ package observatory
 
 import java.time.LocalDate
 
+import monix.execution.Scheduler.Implicits.global
+import monix.reactive._
+
+import scala.io.Source
+import scala.util.{Try, Success, Failure}
+// import scala.collection.mutable.HashMap
+
+case class StationKey(stn: Option[Int], wban: Option[Int])
+case class GeoPos(lat: Double, lon: Double)
+
 /**
   * 1st milestone: data extraction
   */
@@ -25,4 +35,21 @@ object Extraction {
     ???
   }
 
+  def parseStationsStream(stationsFile: String): Map[StationKey, GeoPos] = {
+    def optInt(a: String) = Try(a.toInt) match {
+      case Success(v) => Some(v)
+      case Failure(_) => None
+    }
+
+    val lineStream = Source.fromInputStream(getClass.getResourceAsStream(stationsFile)).getLines
+    val optKvStream = lineStream.map((str: String) => str.split(",")).map {
+      case Array(stn, wban, lat, lon) => Some(StationKey(optInt(stn), optInt(wban)) -> GeoPos(lat.toDouble, lon.toDouble))
+      case _ => None
+    }
+
+    optKvStream.flatten.toMap
+
+  }
+
 }
+

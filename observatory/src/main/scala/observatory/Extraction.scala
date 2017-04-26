@@ -94,11 +94,7 @@ object Extraction {
     val tryRecord = str.split(",") match {
       case Array(stn, wban, month, day, temp) => {
         val skey = parseStationKey(stn, wban)
-        for {
-          month <- Try(month.toInt)
-          day <- Try(day.toInt)
-          temp <- Try(temp.toDouble)
-        } yield TempsLine(skey, month, day, temp)
+        Try(TempsLine(skey, month.toInt, day.toInt, temp.toDouble))
       }
       case _ => Failure(new RuntimeException("Parse failed"))
     }

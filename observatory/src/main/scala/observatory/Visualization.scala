@@ -60,7 +60,31 @@ object Visualization {
     * @return The color that corresponds to `value`, according to the color scale defined by `points`
     */
   def interpolateColor(points: Iterable[(Double, Color)], value: Double): Color = {
-    ???
+    // TODO : sort array
+    val sortedPoints = points.toList.sortWith(_._1 < _._1).toArray
+    interpolateColor2(sortedPoints, value)
+  }
+
+  def interpolateColor2(sortedPoints: Array[(Double, Color)], value: Double): Color = {
+
+    for (i <- 0 until sortedPoints.length - 1) {
+      (sortedPoints(i), sortedPoints(i + 1)) match {
+        case ((v1, Color(r1, g1, b1)), (v2, Color(r2, g2, b2))) => {
+          if (v1 > value)
+            v2
+          else if (v1 <= value && v2 > value) {
+            val ratio = (value - v1) / (v2 - v1)
+            return Color(
+              ((r1 min r2) + math.abs(r2 - r1) * ratio).toInt,
+              ((g1 min g2) + math.abs(g2 - g1) * ratio).toInt,
+              ((b1 min b2) + math.abs(b2 - b1) * ratio).toInt
+            )
+          }
+        }
+      }
+    }
+    // Value is not within the colourmap.  Return maximum color
+    sortedPoints(sortedPoints.length-1)._2
   }
 
   /**

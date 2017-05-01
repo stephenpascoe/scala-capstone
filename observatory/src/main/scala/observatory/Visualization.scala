@@ -62,22 +62,23 @@ object Visualization {
   def interpolateColor(points: Iterable[(Double, Color)], value: Double): Color = {
     // TODO : sort array
     val sortedPoints = points.toList.sortWith(_._1 < _._1).toArray
-    interpolateColor2(sortedPoints, value)
+    interpolateColor(sortedPoints, value)
   }
 
-  def interpolateColor2(sortedPoints: Array[(Double, Color)], value: Double): Color = {
+  def interpolateColor(sortedPoints: Array[(Double, Color)], value: Double): Color = {
 
     for (i <- 0 until sortedPoints.length - 1) {
       (sortedPoints(i), sortedPoints(i + 1)) match {
         case ((v1, Color(r1, g1, b1)), (v2, Color(r2, g2, b2))) => {
-          if (v1 > value)
-            v1
+          if (v1 > value) {
+            return Color(r1, g1, b1)
+          }
           else if (v2 > value) {
             val ratio = (value - v1) / (v2 - v1)
             return Color(
-              (r1 + (r2 - r1) * ratio).toInt,
-              (g1 + (g2 - g1) * ratio).toInt,
-              (b1 + (b2 - b1) * ratio).toInt
+              math.round(r1 + (r2 - r1) * ratio).toInt,
+              math.round(g1 + (g2 - g1) * ratio).toInt,
+              math.round(b1 + (b2 - b1) * ratio).toInt
             )
           }
         }
@@ -104,7 +105,7 @@ object Visualization {
     for (y <- 0 until 180) {
       for (x <- 0 until 360) {
         val temp = idw(temperatures, Location(90-y, x-180), P)
-        buffer(y*360 + x) = colorToPixel(interpolateColor2(colourMap, temp))
+        buffer(y*360 + x) = colorToPixel(interpolateColor(colourMap, temp))
       }
     }
 

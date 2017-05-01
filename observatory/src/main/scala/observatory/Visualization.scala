@@ -11,7 +11,7 @@ import scala.annotation.tailrec
 object Visualization {
 
   val EARTH_RADIUS = 6371.0
-  val P = 3.0
+  val P = 4.0
   val MIN_ARC_DISTANCE = 1.0
   val TO_RADIANS = Pi / 180.0
 
@@ -33,7 +33,7 @@ object Visualization {
 
   // TODO : generalise idw algorithm
   // def idw[A,B](sample: Iterable[(A, B)], x: A, p: Double): B = {
-  def idw(sample: Iterable[(Location, Double)], x: Location, p: Double) = {
+  def idw(sample: Iterable[(Location, Double)], x: Location, p: Double): Double = {
 
     @tailrec
     def recIdw(values: Iterator[(Location, Double)], sumVals: Double, sumWeights: Double): Double = {
@@ -71,13 +71,13 @@ object Visualization {
       (sortedPoints(i), sortedPoints(i + 1)) match {
         case ((v1, Color(r1, g1, b1)), (v2, Color(r2, g2, b2))) => {
           if (v1 > value)
-            v2
-          else if (v1 <= value && v2 > value) {
+            v1
+          else if (v2 > value) {
             val ratio = (value - v1) / (v2 - v1)
             return Color(
-              ((r1 min r2) + math.abs(r2 - r1) * ratio).toInt,
-              ((g1 min g2) + math.abs(g2 - g1) * ratio).toInt,
-              ((b1 min b2) + math.abs(b2 - b1) * ratio).toInt
+              (r1 + (r2 - r1) * ratio).toInt,
+              (g1 + (g2 - g1) * ratio).toInt,
+              (b1 + (b2 - b1) * ratio).toInt
             )
           }
         }
@@ -93,7 +93,22 @@ object Visualization {
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Image = {
-    ???
+    val colourMap = colors.toList.sortWith(_._1 < _._1).toArray
+
+    def colorToPixel(c: Color): Pixel = {
+      Pixel.apply(c.red, c.green, c.blue, 255)
+    }
+
+    val buffer = new Array[Pixel](360 * 180)
+
+    for (y <- 0 until 180) {
+      for (x <- 0 until 360) {
+        val temp = idw(temperatures, Location(90-y, x-180), P)
+        buffer(y*360 + x) = colorToPixel(interpolateColor2(colourMap, temp))
+      }
+    }
+
+    Image.apply(360, 180, buffer)
   }
 
 }

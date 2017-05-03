@@ -4,6 +4,10 @@ import scala.math.{acos, cos, pow, sin, Pi}
 import com.sksamuel.scrimage.{Image, Pixel}
 
 import scala.annotation.tailrec
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 /**
   * 2nd milestone: basic visualization
@@ -17,7 +21,7 @@ object Visualization {
 
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
-    * @param location Location where to predict the temperature
+    * @param location     Location where to predict the temperature
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Double)], location: Location): Double = {
@@ -26,7 +30,7 @@ object Visualization {
 
   def dist(x: Location, xi: Location): Double = {
     val deltaLambda = ((x.lon max xi.lon) - (x.lon min xi.lon)) * TO_RADIANS
-    val sigma = acos(sin(x.lat*TO_RADIANS)*sin(xi.lat*TO_RADIANS) + cos(x.lat*TO_RADIANS)*cos(xi.lat*TO_RADIANS) * cos(deltaLambda))
+    val sigma = acos(sin(x.lat * TO_RADIANS) * sin(xi.lat * TO_RADIANS) + cos(x.lat * TO_RADIANS) * cos(xi.lat * TO_RADIANS) * cos(deltaLambda))
     // Convert to arc distance in km
     EARTH_RADIUS * sigma
   }
@@ -44,8 +48,8 @@ object Visualization {
             ui
           else {
             val w = 1.0 / pow(arc_distance, p)
-            if (values.hasNext) recIdw(values, sumVals + w*ui, sumWeights + w)
-            else (sumVals + w*ui) / (sumWeights + w)
+            if (values.hasNext) recIdw(values, sumVals + w * ui, sumWeights + w)
+            else (sumVals + w * ui) / (sumWeights + w)
           }
         }
       }
@@ -56,7 +60,7 @@ object Visualization {
 
   /**
     * @param points Pairs containing a value and its associated color
-    * @param value The value to interpolate
+    * @param value  The value to interpolate
     * @return The color that corresponds to `value`, according to the color scale defined by `points`
     */
   def interpolateColor(points: Iterable[(Double, Color)], value: Double): Color = {
@@ -85,12 +89,12 @@ object Visualization {
       }
     }
     // Value is not within the colourmap.  Return maximum color
-    sortedPoints(sortedPoints.length-1)._2
+    sortedPoints(sortedPoints.length - 1)._2
   }
 
   /**
     * @param temperatures Known temperatures
-    * @param colors Color scale
+    * @param colors       Color scale
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Image = {
@@ -100,17 +104,18 @@ object Visualization {
       Pixel.apply(c.red, c.green, c.blue, 255)
     }
 
-    val buffer = new Array[Pixel](360 * 180)
-
-    for (y <- 0 until 180) {
+    val tasks = for {y <- 0 until 180} yield Future {
+      val row_buffer = new Array[Pixel](360)
       for (x <- 0 until 360) {
-        val temp = idw(temperatures, Location(90-y, x-180), P)
-        buffer(y*360 + x) = colorToPixel(interpolateColor(colourMap, temp))
+        val temp = idw(temperatures, Location(90 - y, x - 180), P)
+        row_buffer(x) = colorToPixel(interpolateColor(colourMap, temp))
       }
+      row_buffer
     }
+
+    val totalTask = Future.sequence(tasks).map(seq => seq.reduce(_ ++ _))
+    val buffer = Await.result(totalTask, 20.minute)
 
     Image.apply(360, 180, buffer)
   }
-
 }
-

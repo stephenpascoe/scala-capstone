@@ -92,30 +92,51 @@ object Visualization {
     sortedPoints(sortedPoints.length - 1)._2
   }
 
+  trait Visualizer {
+    val alpha: Int
+    val width: Int
+    val height: Int
+    val colorMap: Array[(Double, Color)]
+
+    def colorToPixel(c: Color): Pixel = {
+      Pixel.apply(c.red, c.green, c.blue, alpha)
+    }
+
+    def xyToLocation(x: Int, y: Int): Location
+
+    def visualize(temperatures: Iterable[(Location, Double)]): Future[Image] = {
+      val tasks = for {y <- 0 until height} yield Future {
+        val row_buffer = new Array[Pixel](width)
+        for (x <- 0 until width) {
+          val temp = Visualization.idw(temperatures, xyToLocation(x, y), Visualization.P)
+          row_buffer(x) = colorToPixel(Visualization.interpolateColor(colorMap, temp))
+        }
+        row_buffer
+      }
+
+      Future.sequence(tasks).map(seq => Image(width, height, seq.reduce(_ ++ _)))
+    }
+
+  }
+
+  class GlobalVisualizer(colors: Iterable[(Double, Color)]) extends Visualizer {
+    val alpha = 255
+    val width = 360
+    val height = 180
+    val colorMap = colors.toList.sortWith(_._1 < _._1).toArray
+
+    def xyToLocation(x: Int, y: Int): Location = Location(90 - y, x - 180)
+  }
+
   /**
     * @param temperatures Known temperatures
     * @param colors       Color scale
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Image = {
-    val colourMap = colors.toList.sortWith(_._1 < _._1).toArray
+    val visualizer = new GlobalVisualizer(colors)
 
-    def colorToPixel(c: Color): Pixel = {
-      Pixel.apply(c.red, c.green, c.blue, 255)
-    }
-
-    val tasks = for {y <- 0 until 180} yield Future {
-      val row_buffer = new Array[Pixel](360)
-      for (x <- 0 until 360) {
-        val temp = idw(temperatures, Location(90 - y, x - 180), P)
-        row_buffer(x) = colorToPixel(interpolateColor(colourMap, temp))
-      }
-      row_buffer
-    }
-
-    val totalTask = Future.sequence(tasks).map(seq => seq.reduce(_ ++ _))
-    val buffer = Await.result(totalTask, 20.minute)
-
-    Image.apply(360, 180, buffer)
+    Await.result(visualizer.visualize(temperatures), 20.minutes)
   }
+
 }

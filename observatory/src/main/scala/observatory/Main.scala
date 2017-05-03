@@ -25,7 +25,6 @@ object Main extends App {
   // println("Loading done")
   // println(stations.size)
 
-  // TODO Convert temps and stations data to yearly data
   /*
   val temps: Map[Int, Iterable[(Location, Double)]] = {
     for {

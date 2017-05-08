@@ -88,7 +88,7 @@ object Visualization {
         }
       }
     }
-    // Value is not within the colourmap.  Return maximum color
+    // Value is not within the colormap.  Return maximum color
     sortedPoints(sortedPoints.length - 1)._2
   }
 

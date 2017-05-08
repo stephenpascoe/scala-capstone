@@ -2,9 +2,6 @@ package observatory
 
 import java.time.LocalDate
 
-import monix.execution.Scheduler.Implicits.global
-import monix.reactive._
-
 import scala.io.Source
 import scala.util.{Try, Success, Failure}
 

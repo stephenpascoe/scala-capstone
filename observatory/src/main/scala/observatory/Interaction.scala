@@ -2,16 +2,33 @@ package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel}
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math._
+import Visualization.Visualizer
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 
 /**
   * 3rd milestone: interactive visualization
   */
 object Interaction {
+
+  class TileVisualizer(zoom: Int, colors: Iterable[(Double, Color)], x: Int, y: Int) extends Visualizer {
+    val alpha = 127
+    val width = 256
+    val height = 256
+    val colorMap = colors.toList.sortWith(_._1 < _._1).toArray
+
+    // Tile offset of this tile in the zoom+8 coordinate system
+    val x0 = pow(2.0, zoom + (8 - 1)).toInt * x
+    val y0 = pow(2.0, zoom + (8 - 1)).toInt * y
+
+    def xyToLocation(x: Int, y: Int): Location = {
+      tileLocation(zoom + 8, x0 + x, y0 + y)
+    }
+  }
+
 
   /**
     * @param zoom Zoom level
@@ -21,7 +38,7 @@ object Interaction {
     */
   def tileLocation(zoom: Int, x: Int, y: Int): Location = {
     val n = pow(2.0, zoom)
-    val lon = (x / (n * 260.0 - 180.0))
+    val lon = (x.toDouble / n) * 360.0 - 180.0
     val lat = atan(sinh(Pi * (1.0 - 2.0 * y / n))).toDegrees
 
     Location(lat, lon)
@@ -36,7 +53,9 @@ object Interaction {
     * @return A 256×256 image showing the contents of the tile defined by `x`, `y` and `zooms`
     */
   def tile(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)], zoom: Int, x: Int, y: Int): Image = {
-    ???
+    val vis = new TileVisualizer(zoom, colors, x, y)
+
+    Await.result(vis.visualize(temperatures), 20.minutes)
   }
 
   /**
@@ -50,7 +69,13 @@ object Interaction {
     yearlyData: Iterable[(Int, Data)],
     generateImage: (Int, Int, Int, Int, Data) => Unit
   ): Unit = {
-    ???
-  }
+    for {
+      (year, data) <- yearlyData
+      zoom <- 0 until 3
+      y <- 0 until pow(2.0, zoom).toInt
+      x <- 0 until pow(2.0, zoom).toInt
+    } yield generateImage(year, zoom, x, y, data)
 
+    ()
+  }
 }

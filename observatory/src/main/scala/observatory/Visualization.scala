@@ -6,7 +6,6 @@ import com.sksamuel.scrimage.{Image, Pixel}
 import scala.annotation.tailrec
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 
 /**
@@ -104,18 +103,16 @@ object Visualization {
 
     def xyToLocation(x: Int, y: Int): Location
 
-    def visualize(temperatures: Iterable[(Location, Double)]): Future[Image] = {
-      Future {
-        val buffer = new Array[Pixel](width * height)
-        for (y <- 0 until height) {
-          for (x <- 0 until width) {
-            val temp = Visualization.idw(temperatures, xyToLocation(x, y), Visualization.P)
-            buffer(y * width + x) = colorToPixel(Visualization.interpolateColor(colorMap, temp))
-          }
+    def visualize(temperatures: Iterable[(Location, Double)]): Image = {
+      val buffer = new Array[Pixel](width * height)
+      for (y <- 0 until height) {
+        for (x <- 0 until width) {
+          val temp = Visualization.idw(temperatures, xyToLocation(x, y), Visualization.P)
+          buffer(y * width + x) = colorToPixel(Visualization.interpolateColor(colorMap, temp))
         }
-
-        Image(width, height, buffer)
       }
+
+      Image(width, height, buffer)
     }
   }
 
@@ -136,7 +133,7 @@ object Visualization {
   def visualize(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Image = {
     val visualizer = new GlobalVisualizer(colors)
 
-    Await.result(visualizer.visualize(temperatures), 20.minutes)
+    visualizer.visualize(temperatures)
   }
 
 }

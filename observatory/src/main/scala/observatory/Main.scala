@@ -2,6 +2,7 @@ package observatory
 
 import scala.io.Source
 import java.time.LocalDate
+import java.io.File
 
 import Extraction._
 
@@ -37,22 +38,22 @@ object Main extends App {
   }
 
   def doWeek3(): Unit = {
-    val temps1975 = locationYearlyAverageRecords(locateTemperatures(1975, "/stations.csv", "/1975.csv"))
+    val temps = locationYearlyAverageRecords(locateTemperatures(2015, "/stations.csv", "/1975.csv"))
 
-    println("tile1")
-    val tile1 = Interaction.tile(temps1975, colors, 1, 0, 0)
-    tile1.output("./tile1.png")
-    println("tile2")
-    val tile2 = Interaction.tile(temps1975, colors, 1, 1, 0)
-    tile2.output("./tile2.png")
-    println("tile3")
-    val tile3 = Interaction.tile(temps1975, colors, 1, 1, 1)
-    tile3.output("./tile3.png")
-    println("tile4")
-    val tile4 = Interaction.tile(temps1975, colors, 1, 1, 1)
-    tile4.output("./tile4.png")
+    def generateTile(year: Int, zoom: Int, x: Int, y: Int, data: Iterable[(Location, Double)]): Unit = {
+      println(s"Generating tile $zoom:$x:$y for $year")
+      val tile = Interaction.tile(data, colors, zoom, x, y)
+      println(s"Done tile $zoom:$x:$y for $year")
 
+      val tileDir = new File(s"./target/temperatures/2015/$zoom")
+      tileDir.mkdirs()
+      val tileFile = new File(tileDir, s"$x-$y.png")
 
+      tile.output(tileFile)
+      ()
+    }
+
+    Interaction.generateTiles(List((1975, temps)), generateTile)
   }
 
   doWeek3()

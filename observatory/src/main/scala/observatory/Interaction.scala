@@ -5,8 +5,9 @@ import com.sksamuel.scrimage.{Image, Pixel}
 import scala.math._
 import Visualization.Visualizer
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 /**
@@ -55,7 +56,7 @@ object Interaction {
   def tile(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)], zoom: Int, x: Int, y: Int): Image = {
     val vis = new TileVisualizer(zoom, colors, x, y)
 
-    Await.result(vis.visualize(temperatures), 20.minutes)
+    vis.visualize(temperatures)
   }
 
   /**
@@ -69,13 +70,14 @@ object Interaction {
     yearlyData: Iterable[(Int, Data)],
     generateImage: (Int, Int, Int, Int, Data) => Unit
   ): Unit = {
-    for {
+    val tileTasks = for {
       (year, data) <- yearlyData
-      zoom <- 0 until 3
+      zoom <- 0 until 4
       y <- 0 until pow(2.0, zoom).toInt
       x <- 0 until pow(2.0, zoom).toInt
-    } yield generateImage(year, zoom, x, y, data)
+    } yield Future { generateImage(year, zoom, x, y, data) }
 
+    Await.result(Future.sequence(tileTasks), Duration.Inf)
     ()
   }
 }

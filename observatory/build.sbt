@@ -48,5 +48,3 @@ assignmentsMap := Map(
 )
 
 parallelExecution in Test := false // So that tests are executed for each milestone, one after the other
-
-mainClass in assembly := Some("observatory.Main")

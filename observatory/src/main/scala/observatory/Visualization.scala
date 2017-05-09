@@ -105,18 +105,18 @@ object Visualization {
     def xyToLocation(x: Int, y: Int): Location
 
     def visualize(temperatures: Iterable[(Location, Double)]): Future[Image] = {
-      val tasks = for {y <- 0 until height} yield Future {
-        val row_buffer = new Array[Pixel](width)
-        for (x <- 0 until width) {
-          val temp = Visualization.idw(temperatures, xyToLocation(x, y), Visualization.P)
-          row_buffer(x) = colorToPixel(Visualization.interpolateColor(colorMap, temp))
+      Future {
+        val buffer = new Array[Pixel](width * height)
+        for (y <- 0 until height) {
+          for (x <- 0 until width) {
+            val temp = Visualization.idw(temperatures, xyToLocation(x, y), Visualization.P)
+            buffer(y * width + x) = colorToPixel(Visualization.interpolateColor(colorMap, temp))
+          }
         }
-        row_buffer
+
+        Image(width, height, buffer)
       }
-
-      Future.sequence(tasks).map(seq => Image(width, height, seq.reduce(_ ++ _)))
     }
-
   }
 
   class GlobalVisualizer(colors: Iterable[(Double, Color)]) extends Visualizer {

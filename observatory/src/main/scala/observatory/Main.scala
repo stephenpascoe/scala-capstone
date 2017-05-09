@@ -5,6 +5,8 @@ import java.time.LocalDate
 
 import Extraction._
 
+import scala.concurrent.Await
+
 object Main extends App {
   val FIRST_YEAR = 1975
   val LAST_YEAR = 2015

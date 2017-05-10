@@ -35,6 +35,8 @@ object Main extends App {
     val temps1975 = locationYearlyAverageRecords(locateTemperatures(1975, "/stations.csv", "/1975.csv"))
     val image = Visualization.visualize(temps1975, colors)
     image.output("./map_1975.png")
+
+    ()
   }
 
   def doWeek3(): Unit = {

@@ -41,15 +41,20 @@ object Main extends App {
     val temps = locationYearlyAverageRecords(locateTemperatures(2015, "/stations.csv", "/1975.csv"))
 
     def generateTile(year: Int, zoom: Int, x: Int, y: Int, data: Iterable[(Location, Double)]): Unit = {
-      println(s"Generating tile $zoom:$x:$y for $year")
-      val tile = Interaction.tile(data, colors, zoom, x, y)
-      println(s"Done tile $zoom:$x:$y for $year")
-
       val tileDir = new File(s"./target/temperatures/2015/$zoom")
       tileDir.mkdirs()
       val tileFile = new File(tileDir, s"$x-$y.png")
 
-      tile.output(tileFile)
+      if (tileFile.exists ){
+        println(s"Tile $zoom:$x:y already exists")
+      }
+      else {
+        println(s"Generating tile $zoom:$x:$y for $year")
+        val tile = Interaction.tile(data, colors, zoom, x, y)
+        println(s"Done tile $zoom:$x:$y for $year")
+        tile.output(tileFile)
+      }
+
       ()
     }
 

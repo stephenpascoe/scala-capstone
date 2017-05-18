@@ -22,8 +22,8 @@ object Interaction {
     val colorMap = colors.toList.sortWith(_._1 < _._1).toArray
 
     // Tile offset of this tile in the zoom+8 coordinate system
-    val x0 = pow(2.0, zoom + (8 - 1)).toInt * x
-    val y0 = pow(2.0, zoom + (8 - 1)).toInt * y
+    val x0 = pow(2.0, 8).toInt * x
+    val y0 = pow(2.0, 8).toInt * y
 
     def xyToLocation(x: Int, y: Int): Location = {
       tileLocation(zoom + 8, x0 + x, y0 + y)

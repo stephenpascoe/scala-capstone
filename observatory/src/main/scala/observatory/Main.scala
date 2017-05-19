@@ -39,6 +39,8 @@ object Main extends App {
     ()
   }
 
+  // Can be run on high CPU machine as follows:
+  // ~/opt/jre/bin/java -Dscala.concurrent.context.numThreads=20 -Dscala.concurrent.context.maxThreads=8 -cp $jars:capstone-observatory_2.11-0.1-SNAPSHOT.jar observatory.Main
   def doWeek3(): Unit = {
     val temps = locationYearlyAverageRecords(locateTemperatures(2015, "/stations.csv", "/1975.csv"))
 

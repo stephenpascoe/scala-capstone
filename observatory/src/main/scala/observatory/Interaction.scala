@@ -5,15 +5,19 @@ import com.sksamuel.scrimage.{Image, Pixel}
 import scala.math._
 import Visualization.Visualizer
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, Future, ExecutionContext}
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-
+// import scala.concurrent.ExecutionContext.Implicits.global
+import java.util.concurrent.Executors
 
 /**
   * 3rd milestone: interactive visualization
   */
 object Interaction {
+
+  // TODO : Make number of threads configurable
+  // Configure a limit on the number of threads to use
+  implicit val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(10))
 
   class TileVisualizer(zoom: Int, colors: Iterable[(Double, Color)], x: Int, y: Int) extends Visualizer {
     val alpha = 127

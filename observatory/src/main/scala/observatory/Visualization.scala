@@ -63,7 +63,6 @@ object Visualization {
     * @return The color that corresponds to `value`, according to the color scale defined by `points`
     */
   def interpolateColor(points: Iterable[(Double, Color)], value: Double): Color = {
-    // TODO : sort array
     val sortedPoints = points.toList.sortWith(_._1 < _._1).toArray
     interpolateColor(sortedPoints, value)
   }

@@ -1,6 +1,7 @@
 package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel}
+import scala.math._
 
 /**
   * 5th milestone: value-added information visualization
@@ -25,7 +26,7 @@ object Visualization2 {
     d10: Double,
     d11: Double
   ): Double = {
-    ???
+    (d00 * (1.0 - x) * (1.0 - y)) + (d10 * x * (1.0 - y)) + (d01 * (1.0 - x) * y) + (d11 * x * y)
   }
 
   /**
@@ -43,7 +44,41 @@ object Visualization2 {
     x: Int,
     y: Int
   ): Image = {
-    ???
-  }
+    val alpha = 127
+    val width = 256
+    val height = 256
+    val colorMap = colors.toList.sortWith(_._1 < _._1).toArray
 
+    def colorToPixel(c: Color): Pixel = {
+      Pixel.apply(c.red, c.green, c.blue, alpha)
+    }
+
+    // Tile offset of this tile in the zoom+8 coordinate system
+    val x0 = pow(2.0, 8).toInt * x
+    val y0 = pow(2.0, 8).toInt * y
+    val buffer = new Array[Pixel](width * height)
+
+    // TODO : we need to iterate over tile coordinates not grid coordinates
+    for (tileY <- 0 until height) {
+      for (tileX <- 0 until width) {
+        val loc = Interaction.tileLocation(zoom + 8, x0 + tileX, y0 + tileY)
+        val lonFloor = loc.lon.floor.toInt
+        val lonCeil = loc.lon.ceil.toInt
+        val latFloor = loc.lat.floor.toInt
+        val latCeil = loc.lon.ceil.toInt
+
+        val d00 = grid(lonFloor, latCeil)
+        val d01 = grid(lonFloor, latFloor)
+        val d10 = grid(lonCeil, latCeil)
+        val d11 = grid(lonCeil, latFloor)
+
+        val xDelta = loc.lon - lonFloor
+        val yDelta = loc.lat - latFloor
+
+        val interpValue = bilinearInterpolation(xDelta, yDelta, d00, d01, d10, d11)
+        buffer(tileY * width + tileX) = colorToPixel(Visualization.interpolateColor(colorMap, interpValue))
+      }
+    }
+    Image(width, height, buffer)
+  }
 }

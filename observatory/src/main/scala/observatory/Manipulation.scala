@@ -1,7 +1,6 @@
 package observatory
 
-import org.apache.spark.SparkContext._
-
+import org.apache.spark.rdd.RDD
 
 /**
   * 4th milestone: value-added information
@@ -27,27 +26,30 @@ object Manipulation {
     // TODO : Average over all years
     // TODO : Parallelisation with reduce makes sense here or maybe Spark
     // Generate a grid for each year
-    val gridPairs: Iterable[(Array[Double], Int)] = for {
+    val gridPairs: Iterable[(Grid, Int)] = for {
       temps <- temperaturess
-    } yield (new Grid(360, 180, temps).asArray(), 1)
+    } yield (new Grid(360, 180, temps), 1)
 
     val reduced = gridPairs.reduce(mergeArrayPairs)
 
-    val meanGrid = reduced match {
-      case (grid, count) => grid.map(_ / count)
+    // TODO : Make grids mappable to avoid uggly casting
+    val meanGrid: Grid = reduced match {
+      case (grid, count) => new Grid(360, 180, grid.asArray().map(_ / count))
     }
 
-    new Grid(360, 180, meanGrid).asFunction()
+    meanGrid.asFunction()
   }
 
-  def mergeArrayPairs(p1: (Array[Double], Int), p2: (Array[Double], Int)) = {
+  def mergeArrayPairs(p1: (Grid, Int), p2: (Grid, Int)): (Grid, Int) = {
     (p1, p2) match {
       case ((g1, c1), (g2, c2)) => {
-        val g3 = new Array[Double](g1.length)
-        for (i <- 0 until g1.length) {
-          g3(i) = g1(i) + g2(i)
+        val a1 = g1.asArray()
+        val a2 = g2.asArray()
+        val a3 = new Array[Double](a1.length)
+        for (i <- 0 until a1.length) {
+          a3(i) = a1(i) + a2(i)
         }
-        (g3, c1 + c2)
+        (new Grid(360, 180, a3), c1 + c2)
       }
     }
   }
@@ -68,11 +70,11 @@ object Manipulation {
     * Spark implementation of the averaging function
     */
   def averageGridRDD(temperatures: RDD[Grid]): Grid = {
-    val reduced: (Array[Double], Int) = temperatures.reduce(
-      (g1: Grid, g2: Grid) => mergeArrayPairs((g1.asArray(), 1), (g2.asArray(), 1))
+    val reduced: (Grid, Int) = temperatures.map((_, 1)).reduce(
+      (p1: (Grid, Int), p2: (Grid, Int)) => mergeArrayPairs(p1, p2)
     )
-    val meanArray = reduced match {
-      case (grid, count) => grid.map(_ / count)
+    val meanArray: Array[Double] = reduced match {
+      case (grid, count) => grid.asArray().map(_ / count)
     }
     new Grid(360, 180, meanArray)
   }

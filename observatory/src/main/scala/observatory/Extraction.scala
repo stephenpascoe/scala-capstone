@@ -3,7 +3,7 @@ package observatory
 import java.time.LocalDate
 
 import scala.io.Source
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 
 /**
@@ -15,6 +15,8 @@ object Extraction {
     * Interface tested by the grader
     */
 
+  val dataFileSource = new ResourceDataSource()
+
   /**
     * @param year             Year number
     * @param stationsFile     Path of the stations resource file to use (e.g. "/stations.csv")
@@ -24,9 +26,9 @@ object Extraction {
   def locateTemperatures(year: Int,
                          stationsFile: String,
                          temperaturesFile: String): Iterable[(LocalDate, Location, Double)] = {
-    val stationsMap = parseStationsFile(stationsFile)
+    val stationsMap = dataFileSource.parseStationsFile(stationsFile)
 
-    parseTempFile(temperaturesFile).map(toLocatedTemperature(year, stationsMap)).flatten
+    dataFileSource.parseTempFile(temperaturesFile).map(toLocatedTemperature(year, stationsMap)).flatten
   }
 
   def toLocatedTemperature(year: Int,
@@ -55,9 +57,16 @@ object Extraction {
     totalsMap.mapValues(acc => acc.total / acc.count).toIterable
   }
 
+}
+
+/**
+  * Abstract the source of input data.
+  */
+abstract class InputDataSource {
   /**
-    * Functions for parsing lines independent of streaming
+    * @param path path of an input file relative to some context implemented in subclasses
     */
+  def dataFileStream(path: String): Source
 
   /**
     * Any Non-numeric input results in the key's component  being None
@@ -67,7 +76,7 @@ object Extraction {
     * @return         StationKey
     */
   def parseStationKey(stnStr: String, wbanStr: String) = StationKey(Try(stnStr.toInt).toOption,
-                                                                    Try(wbanStr.toInt).toOption)
+    Try(wbanStr.toInt).toOption)
 
   /**
     * Parse a line from the stations file
@@ -103,16 +112,19 @@ object Extraction {
     */
 
   def parseStationsFile(stationsFile: String): Map[StationKey, Location] = {
-    val lineStream = Source.fromInputStream(getClass.getResourceAsStream(stationsFile)).getLines
+    val lineStream = dataFileStream(stationsFile).getLines
 
     lineStream.map(parseStationsLine).flatten.toMap
   }
 
   def parseTempFile(temperaturesFile: String) : Iterable[TempsLine] = {
-    val lineStream = Source.fromInputStream(getClass.getResourceAsStream(temperaturesFile)).getLines
+    val lineStream = dataFileStream(temperaturesFile).getLines
 
     lineStream.map(parseTempsLine).flatten.toIterable
   }
 
 }
 
+class ResourceDataSource extends InputDataSource {
+  def dataFileStream(path: String) = Source.fromInputStream(getClass.getResourceAsStream(path))
+}

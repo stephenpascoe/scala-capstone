@@ -7,6 +7,7 @@ import java.io.File
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
+import org.apache.spark.rdd.RDD
 
 import Extraction._
 import Manipulation._
@@ -91,9 +92,9 @@ object Main extends App {
     val temps: RDD[(Int, Iterable[(Location, Double)])] = years.map( (year: Int) => {
       (year, locationYearlyAverageRecords(locateTemperatures(year, "/stations.csv", s"/${year}.csv")))
     })
-    val grids: RDD[(Int, Grid)] = temps.map(
-      (year: Int, temps: Iterable[(Location, Double)]) => new Grid(360, 180, temps)
-    )
+    val grids: RDD[(Int, Grid)] = temps.map({
+      case (year: Int, temps: Iterable[(Location, Double)]) => (year, new Grid(360, 180, temps))
+    })
 
     // Calculate normals from 1975-1989
     val normalGrid: Grid = averageGridRDD(grids.filter(_._1 < 1990).map(_._2))

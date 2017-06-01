@@ -1,5 +1,8 @@
 package observatory
 
+import org.apache.spark.SparkContext._
+
+
 /**
   * 4th milestone: value-added information
   */
@@ -28,23 +31,25 @@ object Manipulation {
       temps <- temperaturess
     } yield (new Grid(360, 180, temps).asArray(), 1)
 
-    val reduced = gridPairs.reduce { (p1: (Array[Double], Int), p2: (Array[Double], Int)) => {
-      (p1, p2) match {
-        case ((g1, c1), (g2, c2)) => {
-          val g3 = new Array[Double](g1.length)
-          for (i <- 0 until g1.length) {
-            g3(i) = g1(i) + g2(i)
-          }
-          (g3, c1 + c2)
-        }
-      }
-    }}
+    val reduced = gridPairs.reduce(mergeArrayPairs)
 
     val meanGrid = reduced match {
       case (grid, count) => grid.map(_ / count)
     }
 
     new Grid(360, 180, meanGrid).asFunction()
+  }
+
+  def mergeArrayPairs(p1: (Array[Double], Int), p2: (Array[Double], Int)) = {
+    (p1, p2) match {
+      case ((g1, c1), (g2, c2)) => {
+        val g3 = new Array[Double](g1.length)
+        for (i <- 0 until g1.length) {
+          g3(i) = g1(i) + g2(i)
+        }
+        (g3, c1 + c2)
+      }
+    }
   }
 
   /**
@@ -57,6 +62,19 @@ object Manipulation {
     (x: Int, y: Int) => {
       grid(x, y) - normals(x, y)
     }
+  }
+
+  /**
+    * Spark implementation of the averaging function
+    */
+  def averageGridRDD(temperatures: RDD[Grid]): Grid = {
+    val reduced: (Array[Double], Int) = temperatures.reduce(
+      (g1: Grid, g2: Grid) => mergeArrayPairs((g1.asArray(), 1), (g2.asArray(), 1))
+    )
+    val meanArray = reduced match {
+      case (grid, count) => grid.map(_ / count)
+    }
+    new Grid(360, 180, meanArray)
   }
 
 

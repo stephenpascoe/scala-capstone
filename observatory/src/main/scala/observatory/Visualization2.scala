@@ -58,7 +58,6 @@ object Visualization2 {
     val y0 = pow(2.0, 8).toInt * y
     val buffer = new Array[Pixel](width * height)
 
-    // TODO : we need to iterate over tile coordinates not grid coordinates
     for (tileY <- 0 until height) {
       for (tileX <- 0 until width) {
         val loc = Interaction.tileLocation(zoom + 8, x0 + tileX, y0 + tileY)

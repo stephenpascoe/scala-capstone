@@ -9,13 +9,21 @@ import scala.util.{Failure, Success, Try}
 /**
   * 1st milestone: data extraction
   */
-object Extraction {
+object Extraction extends DataExtractor(new ResourceFileSource())
 
-  /**
-    * Interface tested by the grader
-    */
 
-  val dataFileSource = new ResourceDataSource()
+abstract class DataFileSource {
+  def getSource(path: String): Source
+}
+
+class ResourceFileSource extends DataFileSource {
+  def getSource(path: String) = Source.fromInputStream(getClass.getResourceAsStream(path))
+}
+
+/**
+  * Abstract the source of input data.
+  */
+class DataExtractor(dataSource: DataFileSource) {
 
   /**
     * @param year             Year number
@@ -26,9 +34,9 @@ object Extraction {
   def locateTemperatures(year: Int,
                          stationsFile: String,
                          temperaturesFile: String): Iterable[(LocalDate, Location, Double)] = {
-    val stationsMap = dataFileSource.parseStationsFile(stationsFile)
+    val stationsMap = parseStationsFile(stationsFile)
 
-    dataFileSource.parseTempFile(temperaturesFile).map(toLocatedTemperature(year, stationsMap)).flatten
+    parseTempFile(temperaturesFile).map(toLocatedTemperature(year, stationsMap)).flatten
   }
 
   def toLocatedTemperature(year: Int,
@@ -57,16 +65,6 @@ object Extraction {
     totalsMap.mapValues(acc => acc.total / acc.count).toIterable
   }
 
-}
-
-/**
-  * Abstract the source of input data.
-  */
-abstract class InputDataSource {
-  /**
-    * @param path path of an input file relative to some context implemented in subclasses
-    */
-  def dataFileStream(path: String): Source
 
   /**
     * Any Non-numeric input results in the key's component  being None
@@ -112,19 +110,15 @@ abstract class InputDataSource {
     */
 
   def parseStationsFile(stationsFile: String): Map[StationKey, Location] = {
-    val lineStream = dataFileStream(stationsFile).getLines
+    val lineStream = dataSource.getSource(stationsFile).getLines
 
     lineStream.map(parseStationsLine).flatten.toMap
   }
 
   def parseTempFile(temperaturesFile: String) : Iterable[TempsLine] = {
-    val lineStream = dataFileStream(temperaturesFile).getLines
+    val lineStream = dataSource.getSource(temperaturesFile).getLines
 
     lineStream.map(parseTempsLine).flatten.toIterable
   }
 
-}
-
-class ResourceDataSource extends InputDataSource {
-  def dataFileStream(path: String) = Source.fromInputStream(getClass.getResourceAsStream(path))
 }

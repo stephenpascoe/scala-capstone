@@ -13,7 +13,7 @@ object Manipulation {
     *         returns the predicted temperature at this location
     */
   def makeGrid(temperatures: Iterable[(Location, Double)]): (Int, Int) => Double = {
-    val grid = new Grid(360, 180, temperatures)
+    val grid: Grid = Grid.fromIterable(temperatures)
     grid.asFunction()
   }
 
@@ -28,13 +28,12 @@ object Manipulation {
     // Generate a grid for each year
     val gridPairs: Iterable[(Grid, Int)] = for {
       temps <- temperaturess
-    } yield (new Grid(360, 180, temps), 1)
+    } yield (Grid.fromIterable(temps), 1)
 
     val reduced = gridPairs.reduce(mergeArrayPairs)
 
-    // TODO : Make grids mappable to avoid uggly casting
     val meanGrid: Grid = reduced match {
-      case (grid, count) => new Grid(360, 180, grid.asArray().map(_ / count))
+      case (grid, count) => grid.map(_ / count)
     }
 
     meanGrid.asFunction()
@@ -43,13 +42,7 @@ object Manipulation {
   def mergeArrayPairs(p1: (Grid, Int), p2: (Grid, Int)): (Grid, Int) = {
     (p1, p2) match {
       case ((g1, c1), (g2, c2)) => {
-        val a1 = g1.asArray()
-        val a2 = g2.asArray()
-        val a3 = new Array[Double](a1.length)
-        for (i <- 0 until a1.length) {
-          a3(i) = a1(i) + a2(i)
-        }
-        (new Grid(360, 180, a3), c1 + c2)
+        (g1.add(g2), c1 + c2)
       }
     }
   }
@@ -70,42 +63,16 @@ object Manipulation {
     * Spark implementation of the averaging function
     */
   def averageGridRDD(temperatures: RDD[Grid]): Grid = {
+    println(s"OBSERVATORY: Averaging grid")
     val reduced: (Grid, Int) = temperatures.map((_, 1)).reduce(
       (p1: (Grid, Int), p2: (Grid, Int)) => mergeArrayPairs(p1, p2)
     )
-    val meanArray: Array[Double] = reduced match {
-      case (grid, count) => grid.asArray().map(_ / count)
-    }
-    new Grid(360, 180, meanArray)
-  }
-
-
-}
-
-// TODO : This is very similar to Visualization.Visualizer.  We could generalise.
-class Grid(width: Int, height: Int, buffer: Array[Double]) {
-
-  def this(width: Int, height: Int, temperatures: Iterable[(Location, Double)]) {
-    this(width, height, new Array[Double](width * height))
-
-    for (y <- 0 until height) {
-      for (x <- 0 until width) {
-        buffer(y * width + x) = Visualization.idw(temperatures, xyToLocation(x, y), Visualization.P)
+    reduced match {
+      case (grid, count) => {
+        grid.scale(1.0 / count)
       }
     }
   }
-
-  def xyToLocation(x: Int, y: Int): Location = Location((height / 2) - y, x - (width / 2))
-  def asFunction(): (Int, Int) => Double = {
-    (lat: Int, lon: Int) => {
-      val x = lon + 180
-      val y = 90 - lat
-      buffer(y * width + x)
-    }
-  }
-
-  def asArray(): Array[Double] = buffer
-
 
 }
 

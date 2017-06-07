@@ -5,25 +5,18 @@ import java.time.LocalDate
 import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
-
 /**
   * 1st milestone: data extraction
   */
-object Extraction extends DataExtractor(new ResourceFileSource())
+object Extraction extends DataExtractor(DataSource.resourceFileLookup)
 
-
-abstract class DataFileSource {
-  def getSource(path: String): Source
-}
-
-class ResourceFileSource extends DataFileSource {
-  def getSource(path: String) = Source.fromInputStream(getClass.getResourceAsStream(path))
-}
 
 /**
   * Abstract the source of input data.
+  *
+  * @param dataSource: A function for getting an IO Source from a relative path.
   */
-class DataExtractor(dataSource: DataFileSource) {
+class DataExtractor(dataSource: DataSource.Lookup) extends Serializable {
 
   /**
     * @param year             Year number
@@ -110,13 +103,13 @@ class DataExtractor(dataSource: DataFileSource) {
     */
 
   def parseStationsFile(stationsFile: String): Map[StationKey, Location] = {
-    val lineStream = dataSource.getSource(stationsFile).getLines
+    val lineStream = dataSource(stationsFile).getLines
 
     lineStream.map(parseStationsLine).flatten.toMap
   }
 
   def parseTempFile(temperaturesFile: String) : Iterable[TempsLine] = {
-    val lineStream = dataSource.getSource(temperaturesFile).getLines
+    val lineStream = dataSource(temperaturesFile).getLines
 
     lineStream.map(parseTempsLine).flatten.toIterable
   }

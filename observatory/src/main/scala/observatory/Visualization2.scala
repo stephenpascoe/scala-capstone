@@ -64,18 +64,27 @@ object Visualization2 {
         val lonFloor = loc.lon.floor.toInt
         val lonCeil = loc.lon.ceil.toInt
         val latFloor = loc.lat.floor.toInt
-        val latCeil = loc.lon.ceil.toInt
+        val latCeil = loc.lat.ceil.toInt
 
-        val d00 = grid(lonFloor, latCeil)
-        val d01 = grid(lonFloor, latFloor)
-        val d10 = grid(lonCeil, latCeil)
-        val d11 = grid(lonCeil, latFloor)
+        try {
+          val d00 = grid(latFloor, lonFloor)
+          val d01 = grid(latCeil, lonFloor)
+          val d10 = grid(latFloor, lonCeil)
+          val d11 = grid(latCeil, lonCeil)
 
-        val xDelta = loc.lon - lonFloor
-        val yDelta = loc.lat - latFloor
+          val xDelta = loc.lon - lonFloor
+          val yDelta = loc.lat - latFloor
 
-        val interpValue = bilinearInterpolation(xDelta, yDelta, d00, d01, d10, d11)
-        buffer(tileY * width + tileX) = colorToPixel(Visualization.interpolateColor(colorMap, interpValue))
+          val interpValue = bilinearInterpolation(xDelta, yDelta, d00, d01, d10, d11)
+          buffer(tileY * width + tileX) = colorToPixel(Visualization.interpolateColor(colorMap, interpValue))
+        }
+        catch {
+          case e: ArrayIndexOutOfBoundsException => {
+            println(s"index error loc = $loc, $x0 $tileX $y0 $tileY")
+            throw e
+          }
+        }
+
       }
     }
     Image(width, height, buffer)

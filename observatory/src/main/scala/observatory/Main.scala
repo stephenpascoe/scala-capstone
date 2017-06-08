@@ -98,13 +98,25 @@ object Main {
     val conf: SparkConf = new SparkConf().setAppName("Scala-Capstone")
     val sc: SparkContext = new SparkContext(conf)
 
+    // Parameters
+
+    // Final values
+    // val minYear = 1975
+    // val maxYear = 2016
+    // val normalYearsBefore = 1990
+
+    // Testing values
+    val minYear = 1986
+    val maxYear = 1994
+    val normalYearsBefore = 1990
+
     val lookupResource: DataSource.Lookup = (path: String) => {
       Source.fromFile(s"${resourceDir}/${path}")
     }
     val sparkExtractor = new DataExtractor(lookupResource)
 
     // Load data into RDDs
-    val years: RDD[Int] = sc.parallelize(1975 until 2016, 32)
+    val years: RDD[Int] = sc.parallelize(minYear until maxYear, 32)
     val temps: RDD[(Int, Iterable[(Location, Double)])] = years.map( (year: Int) => {
       println(s"OBSERVATORY: Loading data for year ${year}")
       (year, sparkExtractor.locationYearlyAverageRecords(sparkExtractor.locateTemperatures(year, "/stations.csv", s"/${year}.csv")))
@@ -114,19 +126,20 @@ object Main {
         println(s"OBSERVATORY: Generating grid for year ${year}")
         (year, Grid.fromIterable(temps))
       }
-    })
+    }).cache
 
     // Calculate normals from 1975-1989
-    // TODO : broadcast normalGrid
-    val normalGrid: Grid = averageGridRDD(grids.filter(_._1 < 1990).map(_._2))
+    // Broadcast result to all nodes
+    val normalGridVar = sc.broadcast(averageGridRDD(grids.filter(_._1 < normalYearsBefore).map(_._2)))
+
     // Calculate anomalies for 1990-2015
     val anomalies: RDD[(Int, Grid)] = grids.filter({
-      case (year: Int, g: Grid) => year >= 1990
+      case (year: Int, g: Grid) => year >= normalYearsBefore
     }).map({
-      case (year: Int, g: Grid) => (year, g.diff(normalGrid))
+      case (year: Int, g: Grid) => (year, g.diff(normalGridVar.value))
     })
 
-    // TODO : Create tiles
+    // Create tiles
 
 
     // Anomalies
@@ -136,28 +149,34 @@ object Main {
         y <- 0 until pow(2.0, zoom).toInt
         x <- 0 until pow(2.0, zoom).toInt
       } yield (year, zoom, x, y, grid)
-    }).repartition(32)
+    })
 
     tileParams.foreach({
       case (year: Int, zoom: Int, x: Int, y: Int, grid: Grid) => {
-        println(s"Generating image for $year $zoom:$x:$y")
-        val tile: Image = Visualization2.visualizeGrid(
-          grid.asFunction(),
-          anomalyColors,
-          zoom, x, y
-        )
-
-        val tileDir = new File(s"${resourceDir}/target/deviations/${year}/$zoom")
+        val tileDir = new File(s"${resourceDir}/deviations/${year}/$zoom")
         tileDir.mkdirs()
         val tileFile = new File(tileDir, s"$x-$y.png")
 
-        println(s"Done tile $zoom:$x:$y for $year")
-        tile.output(tileFile)
+        if (tileFile.exists()) {
+          println(s"Anomaly tile for $year $zoom:$x:$y already exists")
+        }
+        else {
+          println(s"Generating image for $year $zoom:$x:$y")
+          val tile: Image = Visualization2.visualizeGrid(
+            grid.asFunction(),
+            anomalyColors,
+            zoom, x, y
+          )
+          println(s"Done tile $zoom:$x:$y for $year")
+          tile.output(tileFile)
+        }
 
         ()
       }
 
     })
+
+    // TODO : Create non-anomaly tiles
   }
 
 }

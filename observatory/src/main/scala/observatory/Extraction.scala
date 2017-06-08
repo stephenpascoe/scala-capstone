@@ -5,6 +5,14 @@ import java.time.LocalDate
 import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
+
+object DataSource {
+  type Lookup = ((String) => Source)
+
+  /* Lookup data source from class resources */
+  val resourceFileLookup: Lookup = (path: String) => Source.fromInputStream(getClass.getResourceAsStream(path))
+}
+
 /**
   * 1st milestone: data extraction
   */

@@ -33,9 +33,3 @@ object Colors {
 
 }
 
-object DataSource {
-  type Lookup = ((String) => Source)
-
-  /* Lookup data source from class resources */
-  val resourceFileLookup: Lookup = (path: String) => Source.fromInputStream(getClass.getResourceAsStream(path))
-}

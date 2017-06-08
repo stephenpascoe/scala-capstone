@@ -101,14 +101,14 @@ object Main {
     // Parameters
 
     // Final values
-    // val minYear = 1975
-    // val maxYear = 2016
-    // val normalYearsBefore = 1990
+    val minYear = 1975
+    val maxYear = 2016
+    val normalYearsBefore = 1990
 
     // Testing values
-    val minYear = 1986
-    val maxYear = 1994
-    val normalYearsBefore = 1990
+    // val minYear = 1986
+    // val maxYear = 1994
+    // val normalYearsBefore = 1990
 
     val lookupResource: DataSource.Lookup = (path: String) => {
       Source.fromFile(s"${resourceDir}/${path}")
@@ -140,44 +140,47 @@ object Main {
     })
 
     // Create tiles
+    def makeTiles(gridRDD: RDD[(Int, Grid)], subDir: String): Unit = {
+      val tileParams = gridRDD.flatMap({
+        case (year: Int, grid: Grid) => for {
+          zoom <- 0 until 4
+          y <- 0 until pow(2.0, zoom).toInt
+          x <- 0 until pow(2.0, zoom).toInt
+        } yield (year, zoom, x, y, grid)
+      })
 
+      tileParams.foreach({
+        case (year: Int, zoom: Int, x: Int, y: Int, grid: Grid) => {
+          val tileDir = new File(s"${resourceDir}/$subDir/${year}/$zoom")
+          tileDir.mkdirs()
+          val tileFile = new File(tileDir, s"$x-$y.png")
 
-    // Anomalies
-    val tileParams = anomalies.flatMap({
-      case (year: Int, grid: Grid) => for {
-        zoom <- 0 until 4
-        y <- 0 until pow(2.0, zoom).toInt
-        x <- 0 until pow(2.0, zoom).toInt
-      } yield (year, zoom, x, y, grid)
-    })
+          if (tileFile.exists()) {
+            println(s"$subDir tile for $year $zoom:$x:$y already exists")
+          }
+          else {
+            println(s"Generating $subDir tile for $year $zoom:$x:$y")
+            val tile: Image = Visualization2.visualizeGrid(
+              grid.asFunction(),
+              anomalyColors,
+              zoom, x, y
+            )
+            println(s"Done $subDir tile $zoom:$x:$y for $year")
+            tile.output(tileFile)
+          }
 
-    tileParams.foreach({
-      case (year: Int, zoom: Int, x: Int, y: Int, grid: Grid) => {
-        val tileDir = new File(s"${resourceDir}/deviations/${year}/$zoom")
-        tileDir.mkdirs()
-        val tileFile = new File(tileDir, s"$x-$y.png")
-
-        if (tileFile.exists()) {
-          println(s"Anomaly tile for $year $zoom:$x:$y already exists")
+          ()
         }
-        else {
-          println(s"Generating image for $year $zoom:$x:$y")
-          val tile: Image = Visualization2.visualizeGrid(
-            grid.asFunction(),
-            anomalyColors,
-            zoom, x, y
-          )
-          println(s"Done tile $zoom:$x:$y for $year")
-          tile.output(tileFile)
-        }
+      })
+    }
 
-        ()
-      }
+    // Create anomaly tiles
+    makeTiles(anomalies, "deviations")
 
-    })
-
-    // TODO : Create non-anomaly tiles
+    // Create non-anomaly tiles
+    makeTiles(grids, "temperatures")
   }
+
 
 }
 

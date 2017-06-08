@@ -1,7 +1,5 @@
 package observatory
 
-import scala.io.Source
-
 case class Location(lat: Double, lon: Double)
 
 case class Color(red: Int, green: Int, blue: Int)

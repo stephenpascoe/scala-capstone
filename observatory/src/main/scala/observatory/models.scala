@@ -31,3 +31,8 @@ object Colors {
 
 }
 
+object Config {
+  val FIRST_YEAR = 1975
+  val LAST_YEAR = 2015
+  val NORMALS_BEFORE = 1990
+}

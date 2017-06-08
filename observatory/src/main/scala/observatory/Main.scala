@@ -18,10 +18,6 @@ import Manipulation._
 import scala.concurrent.Await
 
 object Main {
-  val FIRST_YEAR = 1975
-  val LAST_YEAR = 2015
-  val NORMALS_BEFORE = 1990
-
   def main(args: Array[String]): Unit = {
     // First argument is the resources directory
     val resourceDir = args(0)
@@ -33,7 +29,7 @@ object Main {
   def doWeek1(): Unit = {
     val temps: Map[Int, Iterable[(Location, Double)]] = {
       for {
-        year <- FIRST_YEAR until LAST_YEAR
+        year <- Config.FIRST_YEAR until Config.LAST_YEAR
       } yield (year, locationYearlyAverageRecords(locateTemperatures(year, "/stations.csv", s"/$year.csv")))
     }.toMap
   }
@@ -86,7 +82,7 @@ object Main {
     val sparkExtractor = new DataExtractor(lookupResource)
 
     // Load data into RDDs
-    val years: RDD[Int] = sc.parallelize(FIRST_YEAR until LAST_YEAR + 1, 32)
+    val years: RDD[Int] = sc.parallelize(Config.FIRST_YEAR until Config.LAST_YEAR + 1, 32)
     val temps: RDD[(Int, Iterable[(Location, Double)])] = years.map( (year: Int) => {
       println(s"OBSERVATORY: Loading data for year ${year}")
       (year, sparkExtractor.locationYearlyAverageRecords(sparkExtractor.locateTemperatures(year, "/stations.csv", s"/${year}.csv")))
@@ -100,11 +96,11 @@ object Main {
 
     // Calculate normals from 1975-1989
     // Broadcast result to all nodes
-    val normalGridVar = sc.broadcast(averageGridRDD(grids.filter(_._1 < NORMALS_BEFORE).map(_._2)))
+    val normalGridVar = sc.broadcast(averageGridRDD(grids.filter(_._1 < Config.NORMALS_BEFORE).map(_._2)))
 
     // Calculate anomalies for 1990-2015
     val anomalies: RDD[(Int, Grid)] = grids.filter({
-      case (year: Int, g: Grid) => year >= NORMALS_BEFORE
+      case (year: Int, g: Grid) => year >= Config.NORMALS_BEFORE
     }).map({
       case (year: Int, g: Grid) => (year, g.diff(normalGridVar.value))
     })

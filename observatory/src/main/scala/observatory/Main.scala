@@ -21,26 +21,6 @@ object Main {
   val FIRST_YEAR = 1975
   val LAST_YEAR = 2015
 
-  val colors: List[(Double, Color)] = List(
-    (60.0, Color(255, 255, 255)),
-    (32.0, Color(255, 0, 0)),
-    (12.0, Color(255, 255, 0)),
-    (0.0, Color(0, 255, 255)),
-    (-15.0, Color(0, 0, 255)),
-    (-27.0, Color(255, 0, 255)),
-    (-50.0, Color(33, 0, 107)),
-    (-60.0, Color(0, 0, 0))
-  )
-
-  val anomalyColors: List[(Double, Color)] = List(
-    (7.0, Color(0, 0, 0)),
-    (4.0, Color(255, 0, 0)),
-    (2.0, Color(255, 255, 0)),
-    (0.0, Color(255, 255, 255)),
-    (-2.0, Color(0, 255, 255)),
-    (-7.0, Color(0, 0, 255))
-  )
-
   def main(args: Array[String]): Unit = {
     // First argument is the resources directory
     val resourceDir = args(0)
@@ -140,7 +120,7 @@ object Main {
     })
 
     // Create tiles
-    def makeTiles(gridRDD: RDD[(Int, Grid)], subDir: String): Unit = {
+    def makeTiles(gridRDD: RDD[(Int, Grid)], subDir: String, colorScale: List[(Double, Color)]): Unit = {
       val tileParams = gridRDD.flatMap({
         case (year: Int, grid: Grid) => for {
           zoom <- 0 until 4
@@ -162,7 +142,7 @@ object Main {
             println(s"Generating $subDir tile for $year $zoom:$x:$y")
             val tile: Image = Visualization2.visualizeGrid(
               grid.asFunction(),
-              anomalyColors,
+              colorScale,
               zoom, x, y
             )
             println(s"Done $subDir tile $zoom:$x:$y for $year")
@@ -175,10 +155,10 @@ object Main {
     }
 
     // Create anomaly tiles
-    makeTiles(anomalies, "deviations")
+    makeTiles(anomalies, "deviations", Colors.temperatures)
 
     // Create non-anomaly tiles
-    makeTiles(grids, "temperatures")
+    makeTiles(grids, "temperatures", Colors.anomalies)
   }
 
 

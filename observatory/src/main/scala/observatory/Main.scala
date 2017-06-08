@@ -20,6 +20,7 @@ import scala.concurrent.Await
 object Main {
   val FIRST_YEAR = 1975
   val LAST_YEAR = 2015
+  val NORMALS_BEFORE = 1990
 
   def main(args: Array[String]): Unit = {
     // First argument is the resources directory
@@ -39,7 +40,7 @@ object Main {
 
   def doWeek2(): Unit = {
     val temps1975 = locationYearlyAverageRecords(locateTemperatures(1975, "/stations.csv", "/1975.csv"))
-    val image = Visualization.visualize(temps1975, colors)
+    val image = Visualization.visualize(temps1975, Colors.temperatures)
     image.output("./map_1975.png")
 
     ()
@@ -60,7 +61,7 @@ object Main {
       }
       else {
         println(s"Generating tile $zoom:$x:$y for $year")
-        val tile = Interaction.tile(data, colors, zoom, x, y)
+        val tile = Interaction.tile(data, Colors.temperatures, zoom, x, y)
         println(s"Done tile $zoom:$x:$y for $year")
         tile.output(tileFile)
       }
@@ -78,17 +79,6 @@ object Main {
     val conf: SparkConf = new SparkConf().setAppName("Scala-Capstone")
     val sc: SparkContext = new SparkContext(conf)
 
-    // Parameters
-
-    // Final values
-    val minYear = 1975
-    val maxYear = 2016
-    val normalYearsBefore = 1990
-
-    // Testing values
-    // val minYear = 1986
-    // val maxYear = 1994
-    // val normalYearsBefore = 1990
 
     val lookupResource: DataSource.Lookup = (path: String) => {
       Source.fromFile(s"${resourceDir}/${path}")
@@ -96,7 +86,7 @@ object Main {
     val sparkExtractor = new DataExtractor(lookupResource)
 
     // Load data into RDDs
-    val years: RDD[Int] = sc.parallelize(minYear until maxYear, 32)
+    val years: RDD[Int] = sc.parallelize(FIRST_YEAR until LAST_YEAR + 1, 32)
     val temps: RDD[(Int, Iterable[(Location, Double)])] = years.map( (year: Int) => {
       println(s"OBSERVATORY: Loading data for year ${year}")
       (year, sparkExtractor.locationYearlyAverageRecords(sparkExtractor.locateTemperatures(year, "/stations.csv", s"/${year}.csv")))
@@ -110,11 +100,11 @@ object Main {
 
     // Calculate normals from 1975-1989
     // Broadcast result to all nodes
-    val normalGridVar = sc.broadcast(averageGridRDD(grids.filter(_._1 < normalYearsBefore).map(_._2)))
+    val normalGridVar = sc.broadcast(averageGridRDD(grids.filter(_._1 < NORMALS_BEFORE).map(_._2)))
 
     // Calculate anomalies for 1990-2015
     val anomalies: RDD[(Int, Grid)] = grids.filter({
-      case (year: Int, g: Grid) => year >= normalYearsBefore
+      case (year: Int, g: Grid) => year >= NORMALS_BEFORE
     }).map({
       case (year: Int, g: Grid) => (year, g.diff(normalGridVar.value))
     })

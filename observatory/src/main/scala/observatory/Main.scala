@@ -81,7 +81,7 @@ object Main {
     }
     val sparkExtractor = new DataExtractor(lookupResource)
 
-    // Load data into RDDs
+    // Load data into RDDs, caching the resulting grids
     val years: RDD[Int] = sc.parallelize(Config.FIRST_YEAR until Config.LAST_YEAR + 1, 32)
     val temps: RDD[(Int, Iterable[(Location, Double)])] = years.map( (year: Int) => {
       println(s"OBSERVATORY: Loading data for year ${year}")
@@ -105,46 +105,11 @@ object Main {
       case (year: Int, g: Grid) => (year, g.diff(normalGridVar.value))
     })
 
-    // Create tiles
-    def makeTiles(gridRDD: RDD[(Int, Grid)], subDir: String, colorScale: List[(Double, Color)]): Unit = {
-      val tileParams = gridRDD.flatMap({
-        case (year: Int, grid: Grid) => for {
-          zoom <- 0 until 4
-          y <- 0 until pow(2.0, zoom).toInt
-          x <- 0 until pow(2.0, zoom).toInt
-        } yield (year, zoom, x, y, grid)
-      })
-
-      tileParams.foreach({
-        case (year: Int, zoom: Int, x: Int, y: Int, grid: Grid) => {
-          val tileDir = new File(s"${resourceDir}/$subDir/${year}/$zoom")
-          tileDir.mkdirs()
-          val tileFile = new File(tileDir, s"$x-$y.png")
-
-          if (tileFile.exists()) {
-            println(s"$subDir tile for $year $zoom:$x:$y already exists")
-          }
-          else {
-            println(s"Generating $subDir tile for $year $zoom:$x:$y")
-            val tile: Image = Visualization2.visualizeGrid(
-              grid.asFunction(),
-              colorScale,
-              zoom, x, y
-            )
-            println(s"Done $subDir tile $zoom:$x:$y for $year")
-            tile.output(tileFile)
-          }
-
-          ()
-        }
-      })
-    }
-
     // Create anomaly tiles
-    makeTiles(anomalies, "deviations", Colors.temperatures)
+    makeTiles(anomalies, Colors.temperatures, s"${resourceDir}/deviations")
 
     // Create non-anomaly tiles
-    makeTiles(grids, "temperatures", Colors.anomalies)
+    makeTiles(grids, Colors.anomalies, s"${resourceDir}/temperatures")
   }
 
 

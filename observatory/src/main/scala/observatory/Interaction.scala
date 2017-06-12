@@ -7,7 +7,6 @@ import Visualization.Visualizer
 
 import scala.concurrent.{Await, Future, ExecutionContext}
 import scala.concurrent.duration._
-// import scala.concurrent.ExecutionContext.Implicits.global
 import java.util.concurrent.Executors
 
 /**

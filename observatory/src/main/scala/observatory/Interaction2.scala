@@ -10,7 +10,7 @@ object Interaction2 {
     */
   def availableLayers: Seq[Layer] = List(
     Layer(LayerName.Temperatures, Colors.temperatures, Range(Config.FIRST_YEAR, Config.LAST_YEAR)),
-    Layer(LayerName.Deviations, Colors.anomalies, Range(Config.NORMALS_BEFORE, Config.LAST_YEAR))
+    Layer(LayerName.Deviations, Colors.deviations, Range(Config.NORMALS_BEFORE, Config.LAST_YEAR))
   )
 
   /**

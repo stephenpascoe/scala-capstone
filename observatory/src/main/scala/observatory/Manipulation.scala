@@ -12,6 +12,10 @@ import scala.math._
   */
 object Manipulation {
 
+  /** -----------------------------------------------------------------------
+    * Grader-compatibility functions
+    */
+
   /**
     * @param temperatures Known temperatures
     * @return A function that, given a latitude in [-89, 90] and a longitude in [-180, 179],
@@ -28,8 +32,6 @@ object Manipulation {
     * @return A function that, given a latitude and a longitude, returns the average temperature at this location
     */
   def average(temperaturess: Iterable[Iterable[(Location, Double)]]): (Int, Int) => Double = {
-    // TODO : Average over all years
-    // TODO : Parallelisation with reduce makes sense here or maybe Spark
     // Generate a grid for each year
     val gridPairs: Iterable[(Grid, Int)] = for {
       temps <- temperaturess
@@ -44,14 +46,6 @@ object Manipulation {
     meanGrid.asFunction()
   }
 
-  def mergeArrayPairs(p1: (Grid, Int), p2: (Grid, Int)): (Grid, Int) = {
-    (p1, p2) match {
-      case ((g1, c1), (g2, c2)) => {
-        (g1.add(g2), c1 + c2)
-      }
-    }
-  }
-
   /**
     * @param temperatures Known temperatures
     * @param normals A grid containing the “normal” temperatures
@@ -63,6 +57,10 @@ object Manipulation {
       grid(x, y) - normals(x, y)
     }
   }
+
+  /** -----------------------------------------------------------------------
+    * Spark implementation used by observation.Main
+    */
 
   /**
     * Spark implementation of the averaging function
@@ -80,10 +78,13 @@ object Manipulation {
   }
 
   /**
-    * Create a set of tiles using Spark from an RDD of grids
-    * @param gridRDD
-    * @param pathPrefix
-    * @param colorScale
+    * Create a set of tiles using Spark from an RDD of grids.
+    *
+    * Tiles for zoom levels 0 to 3 are created using bilinear interpolation of the grids.
+    *
+    * @param gridRDD an RDD of grid classes
+    * @param pathPrefix filesystem prefix for writing tiles
+    * @param colorScale color scale to use
     */
   def makeTiles(gridRDD: RDD[(Int, Grid)], colorScale: List[(Double, Color)], pathPrefix: String): Unit = {
     val tileParams = gridRDD.flatMap({
@@ -118,5 +119,18 @@ object Manipulation {
       }
     })
   }
+
+  /** -----------------------------------------------------------------------
+    * Utility functions
+    */
+
+  def mergeArrayPairs(p1: (Grid, Int), p2: (Grid, Int)): (Grid, Int) = {
+    (p1, p2) match {
+      case ((g1, c1), (g2, c2)) => {
+        (g1.add(g2), c1 + c2)
+      }
+    }
+  }
+
 }
 

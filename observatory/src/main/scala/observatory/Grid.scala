@@ -2,14 +2,17 @@ package observatory
 
 
 /**
-  * Created by spascoe on 07/06/2017.
+  * Grid abstracts a 2-D array of doubles for a global grid at 1-degree resolution.
+  * Methods are provided for point-wise arithmetic.  Only those methods required for the application are implemented.
   */
 class Grid extends Serializable {
   val width = 360
   val height = 180
   val buffer: Array[Double] = new Array[Double](width * height)
 
-  def xyToLocation(x: Int, y: Int): Location = Location((height / 2) - y, x - (width / 2))
+  /**
+    * Convert to a function between (lat, lon) and value.  This is required by the grader.
+    */
   def asFunction(): (Int, Int) => Double = {
     (lat: Int, lon: Int) => {
       val x = lon + 180
@@ -17,9 +20,6 @@ class Grid extends Serializable {
       buffer(y * width + x)
     }
   }
-
-  // TODO : remove if possible
-  def asArray(): Array[Double] = buffer
 
   // Add grids
   def add(grid: Grid): Grid = {
@@ -42,6 +42,7 @@ class Grid extends Serializable {
     newGrid
   }
 
+  // map a function over all points
   def map(f: (Double) => Double): Grid = {
     val newGrid = new Grid()
     for (i <- 0 until width * height) { newGrid.buffer(i) = f(this.buffer(i)) }
@@ -51,12 +52,16 @@ class Grid extends Serializable {
 }
 
 object Grid {
+  /**
+    * Generate a grid using spatial interpolation from an iterable of locations and values.
+    */
   def fromIterable(temperatures: Iterable[(Location, Double)]): Grid = {
     val grid = new Grid()
 
     for (y <- 0 until grid.height) {
       for (x <- 0 until grid.width) {
-        grid.buffer(y * grid.width + x) = Visualization.idw(temperatures, grid.xyToLocation(x, y), Visualization.P)
+        val loc = Location((grid.height / 2) - y, x - (grid.width / 2))
+        grid.buffer(y * grid.width + x) = Visualization.idw(temperatures, loc, Visualization.P)
       }
     }
     grid

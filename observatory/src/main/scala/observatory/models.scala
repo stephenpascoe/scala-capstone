@@ -20,7 +20,7 @@ object Colors {
     (-60.0, Color(0, 0, 0))
   )
 
-  val anomalies: List[(Double, Color)] = List(
+  val deviations: List[(Double, Color)] = List(
     (7.0, Color(0, 0, 0)),
     (4.0, Color(255, 0, 0)),
     (2.0, Color(255, 255, 0)),

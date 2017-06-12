@@ -6,6 +6,10 @@ import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
 
+/**
+  * The course grade will load input files from the classpath.  This object implements a suitable
+  * DataExtractor.
+  */
 object DataSource {
   type Lookup = ((String) => Source)
 
@@ -20,7 +24,7 @@ object Extraction extends DataExtractor(DataSource.resourceFileLookup)
 
 
 /**
-  * Abstract the source of input data.
+  * Data extraction routines with an abstract interface to input streams
   *
   * @param dataSource: A function for getting an IO Source from a relative path.
   */

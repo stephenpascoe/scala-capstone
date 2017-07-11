@@ -60,7 +60,7 @@ object Grid {
 
     for (y <- 0 until grid.height) {
       for (x <- 0 until grid.width) {
-        val loc = Location((grid.height / 2) - y, x - (grid.width / 2))
+        val loc = Location(y - (grid.height / 2), x - (grid.width / 2))
         grid.buffer(y * grid.width + x) = Visualization.idw(temperatures, loc, Visualization.P)
       }
     }

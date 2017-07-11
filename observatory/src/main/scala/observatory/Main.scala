@@ -83,12 +83,12 @@ object Main {
     /**
       * Calculate map tiles for the temperature grids.
       */
-    makeTiles(deviations, Colors.temperatures, s"${resourceDir}/deviations")
+    makeTiles(deviations, Colors.deviations, s"${resourceDir}/deviations")
 
     /**
       * Calculate map tiles for the devation grids
       */
-    makeTiles(grids, Colors.deviations, s"${resourceDir}/temperatures")
+    makeTiles(grids, Colors.temperatures, s"${resourceDir}/temperatures")
   }
 }
 
